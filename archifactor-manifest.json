@@ -1,0 +1,166 @@
+{
+  "tool": "ArchiFactor",
+  "manifestVersion": 1,
+  "refactoring": "Unmap JPA Relationships",
+  "description": "The JPA relationship mappings listed below were unmapped: each association field was made @Transient and is now lazy-loaded through a generated service. Owning sides keep the relationship data in a new foreign-key or element-collection field. The database schema is unchanged, so native SQL queries are unaffected; only object-model queries (JPQL, Criteria API, derived query methods) that traverse the unmapped associations are broken. Relationships that declared cascade or orphanRemoval additionally lose that lifecycle propagation, recorded per relationship under 'droppedSemantics'.",
+  "generatedAt": "2026-09-05T18:54:29.550858Z",
+  "framework": "Quarkus",
+  "serviceFactoryClass": "com.mgiandia.library.domain.ServiceFactory",
+  "unmappedRelationships": [
+    {
+      "fromEntity": "com.mgiandia.library.domain.Book",
+      "fieldName": "items",
+      "relationshipType": "OneToMany",
+      "toEntity": "com.mgiandia.library.domain.Item",
+      "toEntityIdField": "itemNumber",
+      "owningSide": false,
+      "targetForeignKeyField": "bookno",
+      "droppedSemantics": {
+        "cascade": ["ALL"],
+        "orphanRemoval": true,
+        "note": "The ORM no longer propagates these lifecycle operations. The database foreign-key constraints are unchanged, so a parent delete may now fail or leave orphan rows. A test failing because of this is a semantics loss, not a broken query."
+      },
+      "lazyLoadServiceMethod": {
+        "service": "com.mgiandia.library.domain.ItemService",
+        "method": "List<Item> getItemsByBookno(Integer bookno)"
+      }
+    },
+    {
+      "fromEntity": "com.mgiandia.library.domain.Book",
+      "fieldName": "authors",
+      "relationshipType": "ManyToMany",
+      "toEntity": "com.mgiandia.library.domain.Author",
+      "toEntityIdField": "id",
+      "owningSide": true,
+      "newElementCollectionField": {
+        "name": "authorids",
+        "type": "Set<Integer>",
+        "collectionTable": "bookauthors",
+        "joinColumn": "bookid",
+        "valueColumn": "authorid"
+      },
+      "droppedSemantics": {
+        "cascade": ["MERGE", "PERSIST"],
+        "orphanRemoval": false,
+        "note": "The ORM no longer propagates these lifecycle operations. The database foreign-key constraints are unchanged, so a parent delete may now fail or leave orphan rows. A test failing because of this is a semantics loss, not a broken query."
+      },
+      "lazyLoadServiceMethod": {
+        "service": "com.mgiandia.library.domain.AuthorService",
+        "method": "List<Author> getAuthorsByIds(Collection<Integer> ids)"
+      }
+    },
+    {
+      "fromEntity": "com.mgiandia.library.domain.BorrowerCard",
+      "fieldName": "borrower",
+      "relationshipType": "OneToOne",
+      "toEntity": "com.mgiandia.library.domain.Borrower",
+      "toEntityIdField": "borrowerNo",
+      "owningSide": true,
+      "newForeignKeyField": {
+        "name": "borrowerno",
+        "type": "int",
+        "columnName": "borrowerno"
+      },
+      "lazyLoadServiceMethod": {
+        "service": "com.mgiandia.library.domain.BorrowerService",
+        "method": "Borrower getBorrowerById(int id)"
+      }
+    },
+    {
+      "fromEntity": "com.mgiandia.library.domain.Author",
+      "fieldName": "books",
+      "relationshipType": "ManyToMany",
+      "toEntity": "com.mgiandia.library.domain.Book",
+      "toEntityIdField": "id",
+      "owningSide": false,
+      "targetElementCollectionField": "authorids",
+      "droppedSemantics": {
+        "cascade": ["MERGE", "PERSIST"],
+        "orphanRemoval": false,
+        "note": "The ORM no longer propagates these lifecycle operations. The database foreign-key constraints are unchanged, so a parent delete may now fail or leave orphan rows. A test failing because of this is a semantics loss, not a broken query."
+      },
+      "lazyLoadServiceMethod": {
+        "service": "com.mgiandia.library.domain.BookService",
+        "method": "List<Book> getBooksByAuthorId(Integer id)"
+      }
+    },
+    {
+      "fromEntity": "com.mgiandia.library.domain.Borrower",
+      "fieldName": "card",
+      "relationshipType": "OneToOne",
+      "toEntity": "com.mgiandia.library.domain.BorrowerCard",
+      "toEntityIdField": "id",
+      "owningSide": false,
+      "targetForeignKeyField": "borrowerno",
+      "lazyLoadServiceMethod": {
+        "service": "com.mgiandia.library.domain.BorrowerCardService",
+        "method": "BorrowerCard getBorrowerCardByBorrowerno(int borrowerno)"
+      }
+    },
+    {
+      "fromEntity": "com.mgiandia.library.domain.Item",
+      "fieldName": "book",
+      "relationshipType": "ManyToOne",
+      "toEntity": "com.mgiandia.library.domain.Book",
+      "toEntityIdField": "id",
+      "owningSide": true,
+      "newForeignKeyField": {
+        "name": "bookno",
+        "type": "Integer",
+        "columnName": "bookno"
+      },
+      "droppedSemantics": {
+        "cascade": ["MERGE", "PERSIST"],
+        "orphanRemoval": false,
+        "note": "The ORM no longer propagates these lifecycle operations. The database foreign-key constraints are unchanged, so a parent delete may now fail or leave orphan rows. A test failing because of this is a semantics loss, not a broken query."
+      },
+      "lazyLoadServiceMethod": {
+        "service": "com.mgiandia.library.domain.BookService",
+        "method": "Book getBookById(Integer id)"
+      }
+    }
+  ],
+  "generatedServices": [
+    {
+      "entity": "com.mgiandia.library.domain.Item",
+      "interface": "com.mgiandia.library.domain.ItemService",
+      "implementation": "com.mgiandia.library.domain.ItemServiceImpl",
+      "methods": [
+        "List<Item> getItemsByBookno(Integer bookno)"
+      ]
+    },
+    {
+      "entity": "com.mgiandia.library.domain.Author",
+      "interface": "com.mgiandia.library.domain.AuthorService",
+      "implementation": "com.mgiandia.library.domain.AuthorServiceImpl",
+      "methods": [
+        "List<Author> getAuthorsByIds(Collection<Integer> ids)"
+      ]
+    },
+    {
+      "entity": "com.mgiandia.library.domain.Borrower",
+      "interface": "com.mgiandia.library.domain.BorrowerService",
+      "implementation": "com.mgiandia.library.domain.BorrowerServiceImpl",
+      "methods": [
+        "Borrower getBorrowerById(int id)"
+      ]
+    },
+    {
+      "entity": "com.mgiandia.library.domain.Book",
+      "interface": "com.mgiandia.library.domain.BookService",
+      "implementation": "com.mgiandia.library.domain.BookServiceImpl",
+      "methods": [
+        "List<Book> getBooksByAuthorId(Integer id)",
+        "Book getBookById(Integer id)"
+      ]
+    },
+    {
+      "entity": "com.mgiandia.library.domain.BorrowerCard",
+      "interface": "com.mgiandia.library.domain.BorrowerCardService",
+      "implementation": "com.mgiandia.library.domain.BorrowerCardServiceImpl",
+      "methods": [
+        "BorrowerCard getBorrowerCardByBorrowerno(int borrowerno)"
+      ]
+    }
+  ]
+}

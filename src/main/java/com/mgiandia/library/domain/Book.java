@@ -1,6 +1,9 @@
 package com.mgiandia.library.domain;
 
+import java.util.AbstractSet;
+import java.util.Collection;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 
 
@@ -41,18 +44,16 @@ public class Book {
     private Publisher publisher;
     
     
-    @OneToMany(orphanRemoval=true, 
-            cascade = CascadeType.ALL, 
-            mappedBy="book", fetch=FetchType.LAZY)    
-    private Set<Item> items = new HashSet<Item>();
+    @Transient
+	private Set<Item> items = new HashSet<Item>();
     
-    @ManyToMany(cascade = { CascadeType.PERSIST, CascadeType.MERGE }, 
-            fetch=FetchType.LAZY)
-    @JoinTable(name="bookauthors", 
-            joinColumns = {@JoinColumn(name="bookid")},
-            inverseJoinColumns = {@JoinColumn(name="authorid")}
-    )
-    private Set<Author> authors = new HashSet<Author>();
+    @Transient
+	private Set<Author> authors = new SyncingAuthorSet();
+
+	@ElementCollection
+	@CollectionTable(name = "bookauthors", joinColumns = @JoinColumn(name = "bookid"))
+	@Column(name = "authorid")
+	private Set<Integer> authorids = new HashSet<>();
 
     /**
      * Προκαθορισμένος κατασκευαστής.
@@ -175,7 +176,7 @@ public class Book {
      * @return Αντίγραφο της συλλογής των αντιτύπων του βιβλίου
      */
     public Set<Item> getItems() {
-        return new HashSet<Item>(items);
+        return new HashSet<Item>(this.friendItems());
     }
 
 
@@ -188,7 +189,7 @@ public class Book {
      * @return Αντίγραφο της συλλογής των συγγραφέων του βιβλίου
      */
     public Set<Author> getAuthors() {
-        return new HashSet<Author>(authors);
+        return new HashSet<Author>(this.friendAuthors());
     }
 
     /**
@@ -216,8 +217,12 @@ public class Book {
      * @return Τα αντίτυπα του βιβλίου
      */
     Set<Item> friendItems() {
-        return items;
-    }
+		if (items.isEmpty() && id != null && ServiceFactory.isContainerAvailable()) {
+			ItemService itemService = ServiceFactory.getItemService();
+			items.addAll(itemService.getItemsByBookno(id));
+		}
+		return items;
+	}
 
     /**
      * Προσθήκη ενός συγγραφέα ({@link Author}) στους συγγραφείς του βιβλίου.
@@ -244,8 +249,12 @@ public class Book {
      * @return Οι συγγραφείς του βιβλίου
      */
     Set<Author> friendAuthors() {
-        return authors;
-    }
+		if (authors.isEmpty() && !authorids.isEmpty() && ServiceFactory.isContainerAvailable()) {
+			AuthorService authorService = ServiceFactory.getAuthorService();
+			authors.addAll(authorService.getAuthorsByIds(authorids));
+		}
+		return authors;
+	}
     
     public boolean equals(Object other) {
         if ( other == null) {
@@ -270,4 +279,122 @@ public class Book {
     public int hashCode() {
         return isbn == null ? 0 : isbn.hashCode();
     }
+
+	private final class SyncingAuthorSet extends AbstractSet<Author> {
+		private final Set<Author> delegate;
+
+		SyncingAuthorSet() {
+			this.delegate = new HashSet<>();
+		}
+
+		@Override
+		public int size() {
+			return delegate.size();
+		}
+
+		@Override
+		public boolean contains(Object o) {
+			return delegate.contains(o);
+		}
+
+		@Override
+		public Iterator<Author> iterator() {
+			Iterator<Author> it = delegate.iterator();
+			return new Iterator<Author>() {
+				Author current;
+
+				@Override
+				public boolean hasNext() {
+					return it.hasNext();
+				}
+
+				@Override
+				public Author next() {
+					current = it.next();
+					return current;
+				}
+
+				@Override
+				public void remove() {
+					it.remove();
+					if (current != null && current.getId() != null) {
+						authorids.remove(current.getId());
+					}
+				}
+			};
+		}
+
+		@Override
+		public boolean add(Author e) {
+			if (e == null) {
+				return false;
+			}
+			boolean changed = delegate.add(e);
+			if (changed && e.getId() != null) {
+				authorids.add(e.getId());
+			}
+			return changed;
+		}
+
+		@Override
+		public boolean remove(Object o) {
+			if (!(o instanceof Author)) {
+				return false;
+			}
+			Author e = (Author) o;
+			boolean changed = delegate.remove(o);
+			if (changed && e.getId() != null) {
+				authorids.remove(e.getId());
+			}
+			return changed;
+		}
+
+		@Override
+		public void clear() {
+			delegate.clear();
+			authorids.clear();
+		}
+
+		@Override
+		public boolean addAll(Collection<? extends Author> c) {
+			boolean changed = false;
+			for (Author e : c) {
+				changed |= add(e);
+			}
+			return changed;
+		}
+
+		@Override
+		public boolean removeAll(Collection<?> c) {
+			boolean changed = false;
+			for (Object o : c) {
+				changed |= remove(o);
+			}
+			return changed;
+		}
+
+		@Override
+		public boolean retainAll(Collection<?> c) {
+			boolean changed = false;
+			Iterator<Author> it = iterator();
+			while (it.hasNext()) {
+				Author e = it.next();
+				if (!c.contains(e)) {
+					it.remove();
+					changed = true;
+				}
+			}
+			return changed;
+		}
+	}
+
+	@PrePersist
+	@PreUpdate
+	private void syncUnmappedForeignKeys() {
+		for (Author e : this.authors) {
+			if (e.getId() != null) {
+				this.authorids.add(e.getId());
+			}
+		}
+	}
  }

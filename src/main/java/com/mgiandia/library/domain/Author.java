@@ -23,9 +23,8 @@ public class Author {
     @Embedded
     private Person person = new Person();
     
-    @ManyToMany(mappedBy="authors",fetch=FetchType.LAZY, 
-            cascade = { CascadeType.PERSIST, CascadeType.MERGE })
-    private Set<Book> books = new HashSet<Book>();
+    @Transient
+	private Set<Book> books = new HashSet<Book>();
 
     /**
      * Προκαθορισμένος κατασκευαστής.
@@ -88,7 +87,7 @@ public class Author {
      * @return Αντίγραφο της συλλογής των βιβλίων του συγγραφέα
      */
     public Set<Book> getBooks() {
-        return new HashSet<Book>(books);
+        return new HashSet<Book>(this.getBooksInner());
     }
 
     /**
@@ -98,7 +97,7 @@ public class Author {
     public void addBook(Book book) {
         if (book != null) {
             book.friendAuthors().add(this);
-            this.books.add(book);
+            this.getBooksInner().add(book);
         }
     }
 
@@ -109,7 +108,7 @@ public class Author {
     public void removeBook(Book book) {
         if (book != null) {
             book.friendAuthors().remove(this);
-            this.books.remove(book);
+            this.getBooksInner().remove(book);
         }
     }
     
@@ -147,4 +146,12 @@ public class Author {
         result = getFirstName() == null ? result : 13 * result + getFirstName().hashCode();
         return result;
     }
+
+	private Set<Book> getBooksInner() {
+		if (books.isEmpty() && id != null && ServiceFactory.isContainerAvailable()) {
+			BookService bookService = ServiceFactory.getBookService();
+			books.addAll(bookService.getBooksByAuthorId(id));
+		}
+		return books;
+	}
 }

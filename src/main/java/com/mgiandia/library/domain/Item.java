@@ -17,11 +17,11 @@ public class Item {
     @Column(name="itemno")
     private int itemNumber = 0;
     
-    @ManyToOne(fetch=FetchType.LAZY, 
-            cascade= {CascadeType.PERSIST, CascadeType.MERGE}    
-            ) 
-    @JoinColumn(name="bookno")
-    private Book book;
+    @Transient
+	private Book book;
+
+	@Column(name = "bookno")
+	private Integer bookno;
     
     @Enumerated(EnumType.STRING)
     @Column(name="itemstate")
@@ -67,12 +67,13 @@ public class Item {
      * @see Book#addItem(Item)
      */
     public void setBook(Book book) {
-        if (this.book != null) {
-            this.book.friendItems().remove(this);
+        if (this.getBook() != null) {
+            this.getBook().friendItems().remove(this);
         }
         this.book = book;
-        if (this.book != null) {
-            this.book.friendItems().add(this);
+		this.bookno = book != null ? book.getId() : null;
+        if (this.getBook() != null) {
+            this.getBook().friendItems().add(this);
         }
     }
 
@@ -81,8 +82,12 @@ public class Item {
      * @return Το βιβλίο του αντιτύπου
      */
     public Book getBook() {
-        return book;
-    }
+		if (book == null && bookno != null && ServiceFactory.isContainerAvailable()) {
+			BookService bookService = ServiceFactory.getBookService();
+			book = bookService.getBookById(bookno);
+		}
+		return book;
+	}
 
 
     /**
@@ -184,5 +189,14 @@ public class Item {
     public String toString() {
         return String.valueOf(itemNumber);
     }
+
+
+	@PrePersist
+	@PreUpdate
+	private void syncUnmappedForeignKeys() {
+		if (this.book != null) {
+			this.bookno = this.book.getId();
+		}
+	}
 
 }

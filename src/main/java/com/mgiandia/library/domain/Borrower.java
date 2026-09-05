@@ -17,7 +17,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
-
+import jakarta.persistence.Transient;
 import com.mgiandia.library.contacts.Address;
 import com.mgiandia.library.contacts.EmailAddress;
 import com.mgiandia.library.contacts.TelephoneNumber;
@@ -60,8 +60,8 @@ public class Borrower  {
             mappedBy="borrower", fetch=FetchType.LAZY)
     private Set<Loan> loans = new HashSet<Loan>();
 
-    @OneToOne(mappedBy="borrower", fetch=FetchType.LAZY)
-    private BorrowerCard card;
+    @Transient
+	private BorrowerCard card;
 
 
     /**
@@ -247,8 +247,12 @@ public class Borrower  {
      * @return Η κάρτα δανεισμού ή null αν δεν έχει εκδοθεί
      */
     public BorrowerCard getCard() {
-        return card;
-    }
+		if (card == null && borrowerNo != 0 && ServiceFactory.isContainerAvailable()) {
+			BorrowerCardService borrowerCardService = ServiceFactory.getBorrowerCardService();
+			card = borrowerCardService.getBorrowerCardByBorrowerno(borrowerNo);
+		}
+		return card;
+	}
 
     /**
      * Ενημερώνει την ανάστροφη πλευρά της σχέσης με την κάρτα δανεισμού.

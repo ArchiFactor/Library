@@ -10,7 +10,10 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 
 /**
  * Η κάρτα δανεισμού ενός δανειζόμενου.
@@ -30,9 +33,11 @@ public class BorrowerCard {
     @Column(name="issuedate")
     private LocalDate issueDate;
 
-    @OneToOne(fetch=FetchType.LAZY)
-    @JoinColumn(name="borrowerno")
-    private Borrower borrower;
+    @Transient
+	private Borrower borrower;
+
+	@Column(name = "borrowerno", unique = true)
+	private int borrowerno;
 
     /**
      * Προκαθορισμένος κατασκευαστής.
@@ -74,8 +79,12 @@ public class BorrowerCard {
      * @return Ο δανειζόμενος
      */
     public Borrower getBorrower() {
-        return borrower;
-    }
+		if (borrower == null && borrowerno != 0 && ServiceFactory.isContainerAvailable()) {
+			BorrowerService borrowerService = ServiceFactory.getBorrowerService();
+			borrower = borrowerService.getBorrowerById(borrowerno);
+		}
+		return borrower;
+	}
 
     /**
      * Θέτει τον δανειζόμενο της κάρτας και ενημερώνει και τις δύο πλευρές της σχέσης.
@@ -83,12 +92,21 @@ public class BorrowerCard {
      * @see Borrower#getCard()
      */
     public void setBorrower(Borrower borrower) {
-        if (this.borrower != null) {
-            this.borrower.friendCard(null);
+        if (this.getBorrower() != null) {
+            this.getBorrower().friendCard(null);
         }
         this.borrower = borrower;
-        if (this.borrower != null) {
-            this.borrower.friendCard(this);
+		this.borrowerno = borrower != null ? borrower.getBorrowerNo() : 0;
+        if (this.getBorrower() != null) {
+            this.getBorrower().friendCard(this);
         }
     }
+
+	@PrePersist
+	@PreUpdate
+	private void syncUnmappedForeignKeys() {
+		if (this.borrower != null) {
+			this.borrowerno = this.borrower.getBorrowerNo();
+		}
+	}
 }
