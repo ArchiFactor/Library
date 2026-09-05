@@ -15,6 +15,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 
 import com.mgiandia.library.contacts.Address;
@@ -58,6 +59,9 @@ public class Borrower  {
     @OneToMany(cascade={CascadeType.PERSIST, CascadeType.MERGE}, 
             mappedBy="borrower", fetch=FetchType.LAZY)
     private Set<Loan> loans = new HashSet<Loan>();
+
+    @OneToOne(mappedBy="borrower", fetch=FetchType.LAZY)
+    private BorrowerCard card;
 
 
     /**
@@ -234,6 +238,24 @@ public class Borrower  {
      */
     Set<Loan> friendLoans() {
         return loans;
+    }
+
+
+    /**
+     * Επιστρέφει την κάρτα δανεισμού του δανειζομένου.
+     * Η κάρτα ανατίθεται μέσω της {@link BorrowerCard#setBorrower(Borrower)}.
+     * @return Η κάρτα δανεισμού ή null αν δεν έχει εκδοθεί
+     */
+    public BorrowerCard getCard() {
+        return card;
+    }
+
+    /**
+     * Ενημερώνει την ανάστροφη πλευρά της σχέσης με την κάρτα δανεισμού.
+     * @param card Η κάρτα δανεισμού
+     */
+    void friendCard(BorrowerCard card) {
+        this.card = card;
     }
 
     /**

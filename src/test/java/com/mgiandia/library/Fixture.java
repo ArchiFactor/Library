@@ -14,6 +14,13 @@ public class Fixture {
 		
 	}
 	
+	public static class BorrowerCards {
+
+		public static final int GIAKOUMAKIS_CARD_ID = 4000;
+		public static final String GIAKOUMAKIS_CARD_NO = "CARD-0001";
+
+	}
+
 	public static class Items {
 
 		public static int UML_USER_GUIDE_ID1 = 1;

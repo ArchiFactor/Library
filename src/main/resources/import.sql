@@ -1,4 +1,5 @@
 delete from loans;
+delete from borrowercards;
 delete from items;        
 delete from bookauthors;
 delete from books;
@@ -35,4 +36,5 @@ insert into borrowercategories(id,description,lendingitems,lendingdays,dailyfine
 insert into borrowercategories(id,description,lendingitems,lendingdays,dailyfineamount,dailyfinecurrency) values (3001, 'Φοιτητής',4,7,5,'EUR');
 
 insert into borrowers(borrowerno,phonenumber,email,street,number,city,zipcode,country,categoryid,firstname,lastname) values (1, null, 'mgia@aueb.gr',null, null, null, null, null, 3000, 'Μανόλης', 'Γιακουμάκης');
+insert into borrowercards(id,cardno,issuedate,borrowerno) values (4000, 'CARD-0001', '2024-01-15', 1);
 insert into borrowers(borrowerno,phonenumber,email,street,number,city,zipcode,country,categoryid,firstname,lastname) values (2, null, 'nad@aueb.gr',null, null, null, null, null, 3001, 'Νίκος', 'Διαμαντίδης');
